@@ -10,6 +10,7 @@ import tensorflow as tf
 from glob import glob
 from urllib.request import urlretrieve
 from tqdm import tqdm
+from moviepy.editor import VideoFileClip
 
 
 class DLProgress(tqdm):
@@ -138,3 +139,37 @@ def save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_p
         sess, logits, keep_prob, input_image, os.path.join(data_dir, 'data_road/testing'), image_shape)
     for name, image in image_outputs:
         scipy.misc.imsave(os.path.join(output_dir, name), image)
+
+
+def process_video(clip_path, sess, logits, keep_prob, input_image, image_shape):
+    """
+    Generate test output using the test images
+    :param sess: TF session
+    :param logits: TF Tensor for the logits
+    :param keep_prob: TF Placeholder for the dropout keep robability
+    :param image_pl: TF Placeholder for the image placeholder
+    :param data_folder: Path to the folder that contains the datasets
+    :param image_shape: Tuple - Shape of image
+    :return: Output for for each test image
+    """
+
+    def process_image(or_image):
+
+        image = scipy.misc.imresize(or_image, image_shape)
+
+        im_softmax = sess.run(
+            [tf.nn.softmax(logits)],
+            {keep_prob: 1.0, input_image: [image]})
+        im_softmax = im_softmax[0][:, 1].reshape(image_shape[0], image_shape[1])
+        segmentation = (im_softmax > 0.5).reshape(image_shape[0], image_shape[1], 1)
+        mask = np.dot(segmentation, np.array([[0, 255, 0, 127]]))
+        mask = scipy.misc.toimage(mask, mode="RGBA")
+        street_im = scipy.misc.toimage(image)
+        street_im.paste(mask, box=None, mask=mask)
+
+        return np.array(street_im)
+
+    clip = VideoFileClip(clip_path)
+
+    white_clip = clip.fl_image(process_image)
+    white_clip.write_videofile("video-result.mp4", audio=False)

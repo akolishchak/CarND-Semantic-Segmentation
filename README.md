@@ -2,6 +2,10 @@
 ### Introduction
 In this project, you'll label the pixels of a road in images using a Fully Convolutional Network (FCN).
 
+#### Trained segmentation model
+[![Trained segmentation model](images/video_image.png)](https://youtu.be/BL7SYyZ7eiM)
+
+
 ### Setup
 ##### Frameworks and Packages
 Make sure you have the following is installed:
